@@ -18,5 +18,5 @@ if not User.objects.exists():
     )
 PY
 
-exec gunicorn --config gunicorn-cfg.py karrio.server.asgi \
+exec gunicorn --config gunicorn-cfg.py ha_ingress_asgi:application \
     -k karrio.server.workers.UvicornWorker
