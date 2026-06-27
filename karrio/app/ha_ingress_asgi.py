@@ -21,17 +21,17 @@ async def application(scope, receive, send):
                 scope = {**scope, "root_path": ingress_path}
                 break
 
+        # Rewrite the root path to /admin/ in-place. A 302 redirect would
+        # be cleaner, but HA ingress lands users on
+        # https://<ha>/<slug> (no trailing slash) and a relative redirect
+        # resolves against the parent directory (i.e. https://<ha>/admin/),
+        # bypassing ingress entirely. Rewriting in the scope avoids that
+        # whole class of URL-resolution edge cases.
         if scope["type"] == "http" and scope["path"] in ("", "/"):
-            target = f"{ingress_path}/admin/" if ingress_path else "/admin/"
-            await send({
-                "type": "http.response.start",
-                "status": 302,
-                "headers": [
-                    (b"location", target.encode("latin-1")),
-                    (b"content-length", b"0"),
-                ],
-            })
-            await send({"type": "http.response.body", "body": b""})
-            return
+            scope = {
+                **scope,
+                "path": "/admin/",
+                "raw_path": (scope.get("root_path", "").encode("latin-1") + b"/admin/"),
+            }
 
     await _karrio_app(scope, receive, send)
