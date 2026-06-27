@@ -73,10 +73,11 @@ export ALLOWED_HOSTS="*"
 # otherwise it falls back to PostgreSQL on localhost. Set both to be safe.
 export DATABASE_ENGINE=sqlite3
 export DATABASE_NAME=db.sqlite3
-# Trust both the direct port and the HA ingress origin for CSRF-protected
-# POSTs. The ingress reverse proxy reaches us on http://; karrio defaults
-# CSRF_TRUSTED_ORIGINS to "http://*" already, but be explicit.
-export CSRF_TRUSTED_ORIGINS="http://*,https://*"
+# Trust direct port, ingress origin, and the literal "null" the
+# sandboxed HA ingress iframe sends as Origin. Django parses that
+# string and accepts requests whose Origin header is exactly "null"
+# when "null" is in the list.
+export CSRF_TRUSTED_ORIGINS="http://*,https://*,null"
 export KARRIO_HTTP_PORT=5002
 # WORK_DIR is where karrio puts db.sqlite3; the upstream code joins it with
 # DATABASE_NAME. Override it to live under /data so the DB persists, even
