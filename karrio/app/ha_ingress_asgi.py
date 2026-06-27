@@ -21,17 +21,20 @@ async def application(scope, receive, send):
                 scope = {**scope, "root_path": ingress_path}
                 break
 
-        # Rewrite the root path to /admin/ in-place. A 302 redirect would
-        # be cleaner, but HA ingress lands users on
-        # https://<ha>/<slug> (no trailing slash) and a relative redirect
-        # resolves against the parent directory (i.e. https://<ha>/admin/),
-        # bypassing ingress entirely. Rewriting in the scope avoids that
-        # whole class of URL-resolution edge cases.
+        # Rewrite the root path to /login/ in-place so the sidebar lands
+        # on karrio's login UI. A 302 redirect would be cleaner, but HA
+        # ingress lands users on https://<ha>/<slug> (no trailing slash)
+        # and a relative redirect resolves against the parent directory
+        # (i.e. https://<ha>/login/), bypassing ingress entirely.
+        #
+        # karrio overrides Django's LOGIN_URL to "/login/" (not the
+        # Django-default /admin/login/), so we route there directly;
+        # once logged in, /login/ redirects staff users on to /admin/.
         if scope["type"] == "http" and scope["path"] in ("", "/"):
             scope = {
                 **scope,
-                "path": "/admin/",
-                "raw_path": (scope.get("root_path", "").encode("latin-1") + b"/admin/"),
+                "path": "/login/",
+                "raw_path": (scope.get("root_path", "").encode("latin-1") + b"/login/"),
             }
 
     await _karrio_app(scope, receive, send)

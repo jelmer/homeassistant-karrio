@@ -1,6 +1,6 @@
 ---
 name: Karrio
-version: "2026.1.32-8"
+version: "2026.1.32-9"
 slug: karrio
 description: Open-source shipping API platform (single-process, SQLite-backed)
 url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio
