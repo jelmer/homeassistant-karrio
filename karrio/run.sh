@@ -31,11 +31,11 @@ if bashio::var.is_empty "${secret_key}"; then
     secret_key=$(cat /data/.secret_key)
 
     # Write it back into the addon's options so it appears in the
-    # Configuration UI. Best-effort: if the API call fails (e.g. on a
-    # locally-developed addon without Supervisor access), log and carry
-    # on with the file-backed value.
+    # Configuration UI. bashio::app.option merges (read-modify-write)
+    # rather than replacing the whole options dict, so we don't drop
+    # the other required options.
     if bashio::var.has_value "${SUPERVISOR_TOKEN:-}"; then
-        if bashio::app.options self "{\"secret_key\": \"${secret_key}\"}"; then
+        if bashio::app.option 'secret_key' "${secret_key}"; then
             bashio::log.info "Stored generated secret_key in addon options."
         else
             bashio::log.warning "Could not write secret_key back to Supervisor; the value is in /data/.secret_key."
