@@ -1,0 +1,6 @@
+#!/bin/bash
+# Karrio background worker launcher. The addon runs with DETACHED_WORKER=False
+# by default (huey runs in-process), so this script is only used if the user
+# overrides that. Lifted from karrio's upstream docker/api/worker.
+set -e
+exec karrio run_huey -w "${BACKGROUND_WORKERS:-2}"

@@ -1,7 +1,10 @@
 ---
-# Both arches resolve to the same multi-arch karrio/server tag.
+# python:3.12-slim is multi-arch (amd64 + arm64), and the karrio packages
+# we install from PyPI are pure Python — so the same Dockerfile builds on
+# both arches.
 build_from:
-  aarch64: karrio.docker.scarf.sh/karrio/server:2026.1.32
-  amd64: karrio.docker.scarf.sh/karrio/server:2026.1.32
+  aarch64: python:3.12-slim
+  amd64: python:3.12-slim
 args:
   KARRIO_VERSION: "2026.1.32"
+  BASHIO_VERSION: "0.16.2"

@@ -4,6 +4,8 @@ version: "2026.1.32"
 slug: karrio
 description: Open-source shipping API platform (single-process, SQLite-backed)
 url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio
+# Prebuilt multi-arch image; the version above is used as the tag.
+image: ghcr.io/jelmer/homeassistant-karrio
 arch:
   - aarch64
   - amd64

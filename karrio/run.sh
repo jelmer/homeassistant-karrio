@@ -1,7 +1,7 @@
 #!/usr/bin/env bashio
 # shellcheck shell=bash
-# Read add-on options from /data/options.json, set up the data directory,
-# and hand off to the upstream karrio entrypoint as the karrio user.
+# Read add-on options from /data/options.json, prep the data directory,
+# then exec the karrio entrypoint as the karrio user.
 set -e
 
 declare secret_key admin_email admin_password
@@ -20,17 +20,15 @@ if bashio::var.is_empty "${secret_key}"; then
     bashio::exit.nok "Option 'secret_key' is required. Set it to a long random string in the addon configuration."
 fi
 
-# Persist karrio's working files (SQLite app DB, huey queue, static files)
-# under /data so they survive add-on restarts and are included in Home
-# Assistant snapshots. The karrio user (created by the upstream image)
-# needs to own them.
-mkdir -p "${WORK_DIR}" "${LOG_DIR}" "${STATIC_ROOT_DIR}"
-chown -R karrio:karrio /data "${WORK_DIR}"
+# Karrio writes the SQLite app DB, huey queue, logs, and collected static
+# files under /data; Home Assistant persists this directory across
+# restarts and includes it in snapshots.
+mkdir -p /data/karrio "${LOG_DIR}" "${STATIC_ROOT_DIR}"
+chown -R karrio:karrio /data/karrio /karrio/plugins
 
-# Run karrio with SQLite + in-process worker: with neither DATABASE_HOST nor
-# REDIS_HOST set, karrio falls back to SQLite for both the app DB and the
-# huey task queue, and DETACHED_WORKER=False keeps the worker inside
-# gunicorn. Single process, no redis, no postgres.
+# With neither DATABASE_HOST nor REDIS_HOST set, karrio uses SQLite for
+# both the application database and the huey task queue. DETACHED_WORKER
+# keeps the worker inside gunicorn.
 export SECRET_KEY="${secret_key}"
 export ADMIN_EMAIL="${admin_email}"
 export ADMIN_PASSWORD="${admin_password}"
@@ -43,12 +41,11 @@ export DEBUG_MODE=False
 export USE_HTTPS=False
 export ALLOWED_HOSTS="*"
 export KARRIO_HTTP_PORT=5002
+# WORK_DIR is where karrio puts db.sqlite3; the upstream code joins it with
+# DATABASE_NAME. Override it to live under /data so the DB persists, even
+# though the entrypoint scripts themselves live in /karrio/app.
+export WORK_DIR=/data/karrio
 
 bashio::log.info "Starting karrio (SQLite, in-process worker) on :${KARRIO_HTTP_PORT}..."
-
-# The upstream entrypoint and gunicorn-cfg.py live in /karrio/app and expect
-# to be invoked from there. Hand off via 'su -p' (preserve-environment) so
-# karrio runs as the unprivileged karrio user the upstream image created
-# while keeping the env vars we just exported.
 cd /karrio/app
 exec su -p -s /bin/bash karrio -c '/karrio/venv/bin/dumb-init -- ./entrypoint'
