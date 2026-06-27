@@ -1,6 +1,6 @@
 ---
 name: Karrio
-version: "2026.1.32-4"
+version: "2026.1.32-5"
 slug: karrio
 description: Open-source shipping API platform (single-process, SQLite-backed)
 url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio
@@ -20,6 +20,7 @@ ingress: true
 ingress_port: 5002
 panel_icon: mdi:truck-delivery
 panel_title: Karrio
+webui: "http://[HOST]:[PORT:5002]/admin/"
 options:
   secret_key: ""
   admin_email: "admin@example.com"
