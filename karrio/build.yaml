@@ -1,0 +1,7 @@
+---
+# Both arches resolve to the same multi-arch karrio/server tag.
+build_from:
+  aarch64: karrio.docker.scarf.sh/karrio/server:2026.1.32
+  amd64: karrio.docker.scarf.sh/karrio/server:2026.1.32
+args:
+  KARRIO_VERSION: "2026.1.32"

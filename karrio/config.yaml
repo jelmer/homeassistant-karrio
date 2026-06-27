@@ -1,0 +1,33 @@
+---
+name: Karrio
+version: "2026.1.32"
+slug: karrio
+description: Open-source shipping API platform (single-process, SQLite-backed)
+url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+boot: auto
+ports:
+  "5002/tcp": 5002
+ports_description:
+  "5002/tcp": Karrio API and admin UI
+options:
+  secret_key: ""
+  admin_email: "admin@example.com"
+  admin_password: "demo"
+  allow_signup: false
+  enable_all_plugins: true
+  workers: 2
+  background_workers: 2
+schema:
+  secret_key: password
+  admin_email: email
+  admin_password: password
+  allow_signup: bool
+  enable_all_plugins: bool
+  workers: int(1,16)
+  background_workers: int(1,16)
+watchdog: "tcp://[HOST]:[PORT:5002]"
