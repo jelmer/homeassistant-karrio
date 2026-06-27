@@ -32,8 +32,13 @@ fi
 # Karrio writes the SQLite app DB, huey queue, logs, and collected static
 # files under /data; Home Assistant persists this directory across
 # restarts and includes it in snapshots.
-mkdir -p /data/karrio "${LOG_DIR}" "${STATIC_ROOT_DIR}"
+mkdir -p /data/karrio "${LOG_DIR}" "${STATIC_ROOT_DIR}" /data/karrio/cache
 chown -R karrio:karrio /data/karrio /karrio/plugins
+
+# Fontconfig spams "No writable cache directories" when there's no
+# XDG_CACHE_HOME and /karrio is read-only-ish. Point it at /data.
+export XDG_CACHE_HOME=/data/karrio/cache
+export FONTCONFIG_PATH=/etc/fonts
 
 # With neither DATABASE_HOST nor REDIS_HOST set, karrio uses SQLite for
 # both the application database and the huey task queue. DETACHED_WORKER
@@ -49,6 +54,11 @@ export DETACHED_WORKER=False
 export DEBUG_MODE=False
 export USE_HTTPS=False
 export ALLOWED_HOSTS="*"
+# Force the SQLite backend. Karrio's settings only pick SQLite if
+# DATABASE_NAME contains "sqlite3" OR DATABASE_ENGINE is set explicitly;
+# otherwise it falls back to PostgreSQL on localhost. Set both to be safe.
+export DATABASE_ENGINE=sqlite3
+export DATABASE_NAME=db.sqlite3
 # Trust both the direct port and the HA ingress origin for CSRF-protected
 # POSTs. The ingress reverse proxy reaches us on http://; karrio defaults
 # CSRF_TRUSTED_ORIGINS to "http://*" already, but be explicit.
