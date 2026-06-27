@@ -16,8 +16,17 @@ enable_all_plugins=$(bashio::config 'enable_all_plugins')
 workers=$(bashio::config 'workers')
 background_workers=$(bashio::config 'background_workers')
 
+# Fall back to (and persist) a generated secret_key when the user hasn't set
+# one. The file lives under /data so it survives restarts and is included
+# in Home Assistant snapshots; rotating it (by deleting the file) would
+# invalidate any existing Django sessions and signed tokens.
 if bashio::var.is_empty "${secret_key}"; then
-    bashio::exit.nok "Option 'secret_key' is required. Set it to a long random string in the addon configuration."
+    if [ ! -s /data/.secret_key ]; then
+        bashio::log.info "Generating a new secret_key under /data/.secret_key..."
+        python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > /data/.secret_key
+        chmod 600 /data/.secret_key
+    fi
+    secret_key=$(cat /data/.secret_key)
 fi
 
 # Karrio writes the SQLite app DB, huey queue, logs, and collected static
@@ -40,6 +49,10 @@ export DETACHED_WORKER=False
 export DEBUG_MODE=False
 export USE_HTTPS=False
 export ALLOWED_HOSTS="*"
+# Trust both the direct port and the HA ingress origin for CSRF-protected
+# POSTs. The ingress reverse proxy reaches us on http://; karrio defaults
+# CSRF_TRUSTED_ORIGINS to "http://*" already, but be explicit.
+export CSRF_TRUSTED_ORIGINS="http://*,https://*"
 export KARRIO_HTTP_PORT=5002
 # WORK_DIR is where karrio puts db.sqlite3; the upstream code joins it with
 # DATABASE_NAME. Override it to live under /data so the DB persists, even
