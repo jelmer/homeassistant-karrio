@@ -1,6 +1,6 @@
 ARG BUILD_FROM=python:3.12-slim
 ARG KARRIO_VERSION=2026.1.32
-ARG BASHIO_VERSION=0.16.2
+ARG BASHIO_VERSION=0.18.1
 
 # ---------------------------------------------------------------------------
 # Stage 1: compile the karrio venv. Builds on amd64 and arm64 since
