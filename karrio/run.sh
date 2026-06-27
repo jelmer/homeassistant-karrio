@@ -16,17 +16,31 @@ enable_all_plugins=$(bashio::config 'enable_all_plugins')
 workers=$(bashio::config 'workers')
 background_workers=$(bashio::config 'background_workers')
 
-# Fall back to (and persist) a generated secret_key when the user hasn't set
-# one. The file lives under /data so it survives restarts and is included
-# in Home Assistant snapshots; rotating it (by deleting the file) would
-# invalidate any existing Django sessions and signed tokens.
+# Fall back to a generated secret_key when the user hasn't set one. We
+# persist a copy under /data (survives restarts even if Supervisor write-
+# back fails) AND push it back into the addon's options via the
+# Supervisor API, so the value shows up in the Configuration tab where
+# the user can see, copy, or change it. Rotating the key invalidates
+# existing Django sessions and signed tokens.
 if bashio::var.is_empty "${secret_key}"; then
     if [ ! -s /data/.secret_key ]; then
-        bashio::log.info "Generating a new secret_key under /data/.secret_key..."
+        bashio::log.info "Generating a new secret_key..."
         python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > /data/.secret_key
         chmod 600 /data/.secret_key
     fi
     secret_key=$(cat /data/.secret_key)
+
+    # Write it back into the addon's options so it appears in the
+    # Configuration UI. Best-effort: if the API call fails (e.g. on a
+    # locally-developed addon without Supervisor access), log and carry
+    # on with the file-backed value.
+    if bashio::var.has_value "${SUPERVISOR_TOKEN:-}"; then
+        if bashio::app.options self "{\"secret_key\": \"${secret_key}\"}"; then
+            bashio::log.info "Stored generated secret_key in addon options."
+        else
+            bashio::log.warning "Could not write secret_key back to Supervisor; the value is in /data/.secret_key."
+        fi
+    fi
 fi
 
 # Karrio writes the SQLite app DB, huey queue, logs, and collected static
