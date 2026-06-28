@@ -44,4 +44,28 @@ async def application(scope, receive, send):
                 "raw_path": (scope.get("root_path", "").encode("latin-1") + b"/login/"),
             }
 
+        # Django doesn't prepend SCRIPT_NAME to redirect Location headers
+        # built from raw paths (LOGIN_REDIRECT_URL = "/admin/"), so post-
+        # login lands the browser on https://<ha>/admin/ -- no ingress
+        # prefix -- and 404s. Rewrite outgoing Location headers that
+        # start with "/" to include the ingress prefix.
+        if scope["type"] == "http" and ingress_path:
+            send = _wrap_send_with_location_rewrite(send, ingress_path)
+
     await _karrio_app(scope, receive, send)
+
+
+def _wrap_send_with_location_rewrite(send, prefix):
+    prefix_bytes = prefix.encode("latin-1")
+
+    async def wrapped(message):
+        if message.get("type") == "http.response.start":
+            new_headers = []
+            for name, value in message.get("headers", []):
+                if name == b"location" and value.startswith(b"/") and not value.startswith(prefix_bytes + b"/") and not value.startswith(b"//"):
+                    value = prefix_bytes + value
+                new_headers.append((name, value))
+            message = {**message, "headers": new_headers}
+        await send(message)
+
+    return wrapped
