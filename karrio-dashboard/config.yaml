@@ -1,6 +1,6 @@
 ---
 name: Karrio Dashboard
-version: "2026.1.32-1"
+version: "2026.1.32-2"
 slug: karrio-dashboard
 description: Next.js web dashboard for the Karrio shipping API addon
 url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio-dashboard

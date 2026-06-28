@@ -62,6 +62,20 @@ const proxy = http.createServer((clientReq, clientRes) => {
       if (headers.location) {
         headers.location = rewriteLocation(headers.location, ingressPath);
       }
+      // HA serves the dashboard in a cross-origin iframe; Next.js's default
+      // X-Frame-Options: SAMEORIGIN (and any CSP frame-ancestors directive)
+      // would block rendering. Strip them when we're being framed via
+      // ingress.
+      if (ingressPath) {
+        delete headers["x-frame-options"];
+        if (headers["content-security-policy"]) {
+          headers["content-security-policy"] = headers["content-security-policy"]
+            .split(";")
+            .map((d) => d.trim())
+            .filter((d) => !/^frame-ancestors\b/i.test(d))
+            .join("; ");
+        }
+      }
       clientRes.writeHead(proxyRes.statusCode, proxyRes.statusMessage, headers);
       proxyRes.pipe(clientRes);
     },
