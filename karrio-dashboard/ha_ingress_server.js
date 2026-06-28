@@ -9,10 +9,40 @@
 // Location headers that start with "/" to include the prefix.
 
 const http = require("http");
+const { URL } = require("url");
 const { spawn } = require("child_process");
 
 const PUBLIC_PORT = parseInt(process.env.PORT || "3002", 10);
 const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT || "3003", 10);
+
+// Browser-facing requests for these path prefixes belong to the karrio
+// API, not the Next.js dashboard. Forward them to the sibling karrio
+// addon at KARRIO_URL.
+const KARRIO_URL = process.env.KARRIO_URL || "";
+const KARRIO_PROXY_PREFIXES = [
+  "/v1/",
+  "/graphql",
+  "/openapi",
+  "/static/",
+  "/admin/",
+  "/login/",
+  "/logout/",
+  "/api/v1/",
+];
+
+function shouldProxyToKarrio(pathname) {
+  return KARRIO_URL && KARRIO_PROXY_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
+let karrioTarget = null;
+if (KARRIO_URL) {
+  const u = new URL(KARRIO_URL);
+  karrioTarget = {
+    host: u.hostname,
+    port: parseInt(u.port || (u.protocol === "https:" ? "443" : "80"), 10),
+    protocol: u.protocol,
+  };
+}
 
 // Boot Next.js standalone server on the internal port.
 const nextProc = spawn(
@@ -49,13 +79,33 @@ const proxy = http.createServer((clientReq, clientRes) => {
     delete clientReq.headers["origin"];
   }
 
+  // Decide whether this request goes to karrio or Next.js, based on
+  // the path. NextAuth's /api/auth/* stays on Next.js; karrio's
+  // /api/v1/* goes to karrio.
+  const pathname = clientReq.url.split("?")[0];
+  const useKarrio = karrioTarget && shouldProxyToKarrio(pathname);
+  const upstream = useKarrio
+    ? { host: karrioTarget.host, port: karrioTarget.port }
+    : { host: "127.0.0.1", port: INTERNAL_PORT };
+
+  // When forwarding to karrio, rewrite the Host header so karrio sees
+  // its own hostname (otherwise its CSRF/ALLOWED_HOSTS checks may
+  // reject the request).
+  const upstreamHeaders = { ...clientReq.headers };
+  if (useKarrio) {
+    upstreamHeaders.host = `${karrioTarget.host}:${karrioTarget.port}`;
+    // karrio's ASGI shim treats X-Ingress-Path as its script prefix; we
+    // don't want it confusing karrio with the dashboard's ingress path.
+    delete upstreamHeaders["x-ingress-path"];
+  }
+
   const proxyReq = http.request(
     {
-      host: "127.0.0.1",
-      port: INTERNAL_PORT,
+      host: upstream.host,
+      port: upstream.port,
       method: clientReq.method,
       path: clientReq.url,
-      headers: clientReq.headers,
+      headers: upstreamHeaders,
     },
     (proxyRes) => {
       const headers = { ...proxyRes.headers };

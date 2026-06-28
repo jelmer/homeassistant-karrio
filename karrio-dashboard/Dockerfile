@@ -35,6 +35,12 @@ WORKDIR /src/out/json
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_DASHBOARD_VERSION=${KARRIO_VERSION}
+# Build with an empty public URL so the browser makes relative-URL API
+# calls back to the dashboard origin; our Node proxy then forwards
+# karrio-owned paths (/v1/, /graphql, /api/auth, /static/) to the
+# sibling karrio addon at runtime. This keeps everything under the
+# dashboard's ingress URL.
+ENV NEXT_PUBLIC_KARRIO_PUBLIC_URL=""
 RUN npm run build -w apps/dashboard
 
 # ---------------------------------------------------------------------------
