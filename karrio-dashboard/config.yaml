@@ -1,0 +1,30 @@
+---
+name: Karrio Dashboard
+version: "2026.1.32-1"
+slug: karrio-dashboard
+description: Next.js web dashboard for the Karrio shipping API addon
+url: https://github.com/jelmer/homeassistant-karrio/tree/main/karrio-dashboard
+image: ghcr.io/jelmer/homeassistant-karrio-dashboard
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+boot: auto
+hassio_api: true
+hassio_role: default
+ports:
+  "3002/tcp": 3002
+ports_description:
+  "3002/tcp": Karrio dashboard (direct, no HA auth)
+ingress: true
+ingress_port: 3002
+panel_icon: mdi:view-dashboard
+panel_title: Karrio Dashboard
+options:
+  karrio_url: ""
+  nextauth_secret: ""
+schema:
+  karrio_url: str?
+  nextauth_secret: password?
+watchdog: "tcp://[HOST]:[PORT:3002]"

@@ -1,0 +1,9 @@
+---
+# node:22-slim is multi-arch. The dashboard is pure JS, so it builds on
+# both arches without native-extension headaches.
+build_from:
+  aarch64: node:22-slim
+  amd64: node:22-slim
+args:
+  KARRIO_VERSION: "2026.1.32"
+  BASHIO_VERSION: "0.18.1"
