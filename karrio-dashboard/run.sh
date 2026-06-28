@@ -7,10 +7,14 @@ declare karrio_url nextauth_secret
 karrio_url=$(bashio::config 'karrio_url')
 nextauth_secret=$(bashio::config 'nextauth_secret')
 
-# Default to HA's addon-to-addon hostname for the local karrio addon.
-# Slug must match karrio/config.yaml; HA exposes it as local_<slug>.
+# Default to HA's addon-to-addon hostname for the sibling karrio addon.
+# HA names addons <repo-hash>-<slug>; that repo-hash isn't predictable
+# from our side, so derive it from our own hostname (which has the
+# same prefix) by swapping our slug for karrio's.
 if bashio::var.is_empty "${karrio_url}"; then
-    karrio_url="http://local_karrio:5002"
+    own_host=$(hostname)
+    sibling_host="${own_host%-dashboard}"
+    karrio_url="http://${sibling_host}:5002"
 fi
 
 # Auto-generate (and persist + surface) the NextAuth secret if empty.
